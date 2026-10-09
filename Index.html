@@ -1,1 +1,920 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Minhas Viagens</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0A0A0A">
+    <link rel="icon" href="355.png">
+    <link rel="apple-touch-icon" href="355.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'app-bg': '#0A0A0A',
+                        'app-card': '#141414',
+                        'app-card-hover': '#1F1F1F',
+                        'app-accent': '#16D6FA',
+                        'app-accent-blue': '#5274FF',
+                        'app-subtext': '#8E8E93',
+                        'input-bg': '#1C1C1E',
+                        'color-cardinal': '#FF453A',
+                        'color-vidaloca': '#30D158'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome & Dexie.js (Banco de Dados Local) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+
+    <style>
+        ::-webkit-scrollbar { display: none; }
+        body { 
+            -ms-overflow-style: none; 
+            scrollbar-width: none; 
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            overflow-x: hidden;
+            background-color: #0A0A0A;
+            color: #FFFFFF;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.25s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+        .ui-field-group { position: relative; margin-top: 6px; }
+        .ui-field-label {
+            position: absolute; top: -9px; left: 12px;
+            background-color: #141414; padding: 0 6px;
+            font-size: 10px; font-weight: 600; color: #8E8E93;
+            border-radius: 4px; z-index: 10;
+        }
+
+        .ui-input {
+            width: 100%; background-color: #1C1C1E; color: inherit;
+            font-size: 13px; font-weight: 500; padding: 11px 14px;
+            border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);
+            outline: none; transition: all 0.2s ease;
+        }
+        .ui-input:focus { border-color: #16D6FA; box-shadow: 0 0 8px rgba(22, 214, 250, 0.2); }
+
+        .custom-select-container { position: relative; width: 100%; }
+        .custom-select-trigger {
+            width: 100%; background-color: #1C1C1E; color: inherit;
+            font-size: 13px; font-weight: 500; padding: 11px 14px;
+            border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; transition: all 0.2s ease; user-select: none;
+        }
+        .custom-select-container.open .custom-select-options { display: block; animation: fadeIn 0.15s ease-out; }
+
+        .custom-select-options {
+            position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+            background-color: #1C1C1E; border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);
+            z-index: 50; max-height: 200px; overflow-y: auto; display: none; padding: 4px;
+        }
+        .custom-option { padding: 10px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; cursor: pointer; }
+        .custom-option:hover, .custom-option.selected { background-color: #2C2C2E; color: #16D6FA; }
+
+        .round-cb-sm {
+            appearance: none; width: 1rem; height: 1rem;
+            border: 1.5px solid #5274FF; border-radius: 50%;
+            display: grid; place-content: center; cursor: pointer; margin-right: 0.5rem; flex-shrink: 0;
+            position: relative; z-index: 10;
+        }
+        .round-cb-sm::before {
+            content: ""; width: 0.5rem; height: 0.5rem; border-radius: 50%;
+            transform: scale(0); transition: 0.15s transform ease-in-out; box-shadow: inset 1em 1em #16D6FA;
+        }
+        .round-cb-sm:checked { border-color: #16D6FA; }
+        .round-cb-sm:checked::before { transform: scale(1); }
+
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; filter: invert(0.8); }
+    </style>
+</head>
+<body class="min-h-screen pb-10">
+
+    <main class="max-w-md sm:max-w-xl md:max-w-2xl mx-auto p-4 space-y-5">
+        
+        <!-- HEADER DO APP -->
+        <header class="flex justify-between items-center pt-2 pb-1">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-base border border-purple-500/30">
+                    <i class="fa-solid fa-plane"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-extrabold text-white tracking-tight">Roteiros & Viagens</h1>
+                    <p class="text-[10px] text-app-subtext font-semibold">Seu organizador de bordo</p>
+                </div>
+            </div>
+            <button onclick="openAddTravelModal()" class="bg-app-accent-blue hover:opacity-90 text-white px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-lg flex items-center gap-1.5">
+                <i class="fa-solid fa-plus text-[10px]"></i> Nova Viagem
+            </button>
+        </header>
+
+        <!-- TELA 1: LISTA DE VIAGENS -->
+        <section id="travel-main-view" class="space-y-4">
+            <div id="travel-list-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+        </section>
+
+        <!-- TELA 2: DETALHES DA VIAGEM SELECIONADA -->
+        <section id="travel-details-view" class="hidden space-y-4">
+            <!-- Barra Superior do Detalhe -->
+            <div class="flex items-center justify-between bg-app-card p-3 rounded-2xl border border-app-card-hover shadow">
+                <div class="flex items-center gap-3">
+                    <button onclick="closeTravelDetails()" class="text-app-accent text-lg p-1.5 hover:bg-input-bg rounded-xl transition cursor-pointer">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h2 id="travel-country-title" class="text-lg font-extrabold text-white"></h2>
+                </div>
+                <button onclick="editTravelHeader()" class="text-xs text-app-subtext hover:text-white p-2 cursor-pointer">
+                    <i class="fa-solid fa-pen"></i> Editar
+                </button>
+            </div>
+
+            <!-- Navegação de Abas Internas -->
+            <div class="flex border-b border-app-card-hover text-xs font-bold text-app-subtext">
+                <button onclick="setTravelTab('itinerario')" id="ttab-itinerario" class="flex-1 py-2.5 text-center border-b-2 border-app-accent text-app-accent cursor-pointer">Itinerário</button>
+                <button onclick="setTravelTab('orcamento')" id="ttab-orcamento" class="flex-1 py-2.5 text-center border-b-2 border-transparent hover:text-white cursor-pointer">Orçamento</button>
+            </div>
+
+            <!-- ================= ABA ITINERÁRIO ================= -->
+            <div id="tsec-itinerario" class="space-y-4 relative">
+                <div id="travel-days-container" class="space-y-3"></div>
+
+                <!-- Formulário: Adicionar Novo Dia -->
+                <div class="bg-app-card border border-app-card-hover p-4 rounded-2xl shadow space-y-3 mt-6">
+                    <h4 class="font-bold text-xs text-white flex items-center gap-2">
+                        <i class="fa-solid fa-calendar-plus text-app-accent"></i> Adicionar Novo Dia ao Roteiro
+                    </h4>
+                    <div class="ui-field-group">
+                        <span class="ui-field-label">Resumo / Título do Dia</span>
+                        <input type="text" id="travel-day-summary" placeholder="Ex: Passeio no centro histórico e museus..." class="ui-input">
+                    </div>
+                    <button onclick="addTravelDay()" class="w-full bg-app-accent-blue text-white p-2.5 rounded-xl font-bold text-xs cursor-pointer hover:opacity-90 transition">
+                        + Adicionar Dia
+                    </button>
+                </div>
+            </div>
+
+            <!-- ================= ABA ORÇAMENTO ================= -->
+            <div id="tsec-orcamento" class="hidden space-y-4">
+                <!-- Resumo do Orçamento -->
+                <div class="bg-app-card border border-app-card-hover p-5 rounded-2xl text-center shadow-xl space-y-2">
+                    <p class="text-[10px] uppercase font-bold text-app-subtext tracking-wider">Orçamento da Viagem</p>
+                    <h2 class="text-3xl font-extrabold text-white" id="travel-total-budget">R$ 0,00</h2>
+                    <div class="pt-2 border-t border-app-card-hover/80 flex justify-between items-center text-xs font-semibold px-2">
+                        <span class="text-app-subtext">Realizado:</span>
+                        <span class="text-color-vidaloca font-bold" id="travel-total-spent">R$ 0,00</span>
+                    </div>
+                </div>
+
+                <!-- Média Diária Resumo -->
+                <div id="budget-daily-summary" class="hidden bg-[#18181A] border border-app-card-hover p-4 rounded-2xl flex justify-between items-center shadow-sm">
+                    <div>
+                        <p class="text-[10px] uppercase font-bold text-app-subtext tracking-wider">Média Diária</p>
+                        <p class="text-[10px] text-gray-500 mt-0.5" id="budget-days-count">0 dias de viagem</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-white" id="budget-daily-planned">R$ 0,00 <span class="text-[9px] font-normal text-app-subtext">/ plan.</span></p>
+                    </div>
+                </div>
+
+                <!-- Configuração de Cotação / Moeda -->
+                <div class="bg-app-card border border-app-card-hover p-4 rounded-2xl space-y-3 shadow">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold text-xs text-white flex items-center gap-2">
+                            <i class="fa-solid fa-coins text-app-accent"></i> Câmbio & Visualização
+                        </h4>
+                        <div class="flex gap-1 text-[10px] font-bold">
+                            <button onclick="setCurrencyView('BRL')" id="cur-BRL" class="px-2.5 py-1 rounded bg-app-accent-blue text-white cursor-pointer">BRL (R$)</button>
+                            <button onclick="setCurrencyView('LOC')" id="cur-LOC" class="px-2.5 py-1 rounded bg-input-bg text-app-subtext cursor-pointer">Moeda Local</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="ui-field-group">
+                            <span class="ui-field-label">Símbolo Local</span>
+                            <input type="text" id="travel-currency-symbol" value="US$" class="ui-input !py-1.5" onchange="saveTravelBudgetSettings()">
+                        </div>
+                        <div class="ui-field-group">
+                            <span class="ui-field-label">Cotação (1 LOC = R$)</span>
+                            <input type="number" step="0.0001" id="travel-currency-rate" value="5.00" class="ui-input !py-1.5" onchange="saveTravelBudgetSettings()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulário: Adicionar Custo -->
+                <form id="form-travel-budget" onsubmit="addTravelBudgetItem(event)" class="bg-app-card border border-app-card-hover p-4 rounded-2xl shadow space-y-3">
+                    <h4 class="font-bold text-xs text-white">Adicionar Custo ao Orçamento</h4>
+                    
+                    <div class="ui-field-group">
+                        <span class="ui-field-label">Dia da Despesa</span>
+                        <div class="custom-select-container" data-id="tb-day">
+                            <div class="custom-select-trigger !py-2 !text-xs" tabindex="0">
+                                <span class="trigger-label" id="tb-day-label">Custo Geral / Fixo</span>
+                                <i class="fa-solid fa-chevron-down text-app-accent text-[8px]"></i>
+                            </div>
+                            <div class="custom-select-options" id="tb-day-options"></div>
+                            <input type="hidden" id="tb-day" value="0">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="ui-field-group">
+                            <span class="ui-field-label">Categoria</span>
+                            <div class="custom-select-container" data-id="tb-category">
+                                <div class="custom-select-trigger !py-2 !text-xs" tabindex="0">
+                                    <span class="trigger-label">Alimentação</span>
+                                    <i class="fa-solid fa-chevron-down text-app-accent text-[8px]"></i>
+                                </div>
+                                <div class="custom-select-options">
+                                    <div class="custom-option" data-value="Voo">Voo</div>
+                                    <div class="custom-option" data-value="Transporte">Transporte</div>
+                                    <div class="custom-option" data-value="Hospedagem">Hospedagem</div>
+                                    <div class="custom-option selected" data-value="Alimentação">Alimentação</div>
+                                    <div class="custom-option" data-value="Atividades">Atividades</div>
+                                    <div class="custom-option" data-value="Outros">Outros</div>
+                                </div>
+                                <input type="hidden" id="tb-category" value="Alimentação">
+                            </div>
+                        </div>
+                        <div class="ui-field-group">
+                            <span class="ui-field-label">Nome do Item</span>
+                            <input type="text" id="tb-name" placeholder="Ex: Passagem, Almoço..." required class="ui-input">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="ui-field-group">
+                            <span class="ui-field-label">Valor Planejado</span>
+                            <input type="number" step="0.01" id="tb-planned" placeholder="0,00" required class="ui-input">
+                        </div>
+                        <div class="ui-field-group">
+                            <span class="ui-field-label">Moeda</span>
+                            <div class="custom-select-container" data-id="tb-planned-currency">
+                                <div class="custom-select-trigger !py-2 !text-xs" tabindex="0">
+                                    <span class="trigger-label">Moeda Local</span>
+                                    <i class="fa-solid fa-chevron-down text-app-accent text-[8px]"></i>
+                                </div>
+                                <div class="custom-select-options">
+                                    <div class="custom-option" data-value="BRL">BRL (R$)</div>
+                                    <div class="custom-option selected" data-value="LOC">Moeda Local</div>
+                                </div>
+                                <input type="hidden" id="tb-planned-currency" value="LOC">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-app-accent-blue text-white p-2.5 rounded-xl font-bold text-xs cursor-pointer mt-2">
+                        + Adicionar Custo
+                    </button>
+                </form>
+
+                <!-- Lista de Custos Organizada por Dia -->
+                <div id="travel-budget-items-list" class="space-y-4"></div>
+            </div>
+        </section>
+
+        <!-- TELA 3: DETALHE DO DIA (ROTEIRO / LINHA DO TEMPO) -->
+        <section id="travel-day-detail-view" class="hidden space-y-4">
+            <div class="flex items-center justify-between bg-app-card p-3.5 rounded-2xl border border-app-card-hover shadow">
+                <button onclick="closeDayDetail()" class="text-app-accent text-base font-bold flex items-center gap-2 p-1 cursor-pointer">
+                    <i class="fa-solid fa-arrow-left"></i> Voltar ao Roteiro
+                </button>
+                <h3 id="day-detail-number-title" class="text-sm font-extrabold text-white"></h3>
+            </div>
+
+            <div class="p-2 space-y-5">
+                <div>
+                    <h3 id="day-detail-summary-display" class="text-lg font-extrabold text-white leading-tight"></h3>
+                    <p class="text-xs text-app-subtext mt-0.5">Atividades e cronograma do dia</p>
+                </div>
+
+                <div class="space-y-3">
+                    <div id="day-timeline-container" class="space-y-5 relative border-l-2 border-app-card-hover ml-3 pl-4"></div>
+                </div>
+
+                <!-- Form Parada / Atividade -->
+                <div class="bg-app-card border border-app-card-hover p-4 rounded-2xl shadow space-y-3 mt-8">
+                    <h4 class="font-bold text-xs text-white flex items-center gap-1.5">
+                        <i class="fa-solid fa-location-dot text-app-accent"></i> Nova Atividade / Parada
+                    </h4>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="ui-field-group col-span-1">
+                            <span class="ui-field-label">Horário</span>
+                            <input type="time" id="new-stop-time" value="09:00" class="ui-input !py-1.5">
+                        </div>
+                        <div class="ui-field-group col-span-2">
+                            <span class="ui-field-label">Atividade / Local</span>
+                            <input type="text" id="new-stop-title" placeholder="Ex: Visita ao Museu" class="ui-input !py-1.5">
+                        </div>
+                    </div>
+                    <div class="ui-field-group">
+                        <span class="ui-field-label">Descrição / Instruções</span>
+                        <textarea id="new-stop-desc" placeholder="Ex: Comprar ingresso na entrada..." class="ui-input h-16 resize-none py-2.5 leading-relaxed"></textarea>
+                    </div>
+                    <button onclick="addTimelineStop()" class="w-full bg-app-accent-blue text-white p-2.5 rounded-xl font-bold text-xs cursor-pointer hover:opacity-90 transition">
+                        + Adicionar ao Dia
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODAL: CRIAR NOVA VIAGEM -->
+        <div id="modal-add-travel" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-[#141414] border border-app-card-hover rounded-3xl max-w-sm w-full p-6 space-y-4 relative">
+                <button onclick="closeAddTravelModal()" class="absolute top-4 right-4 text-app-subtext hover:text-white w-8 h-8 rounded-full bg-input-bg flex items-center justify-center cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <h3 class="text-lg font-bold text-white">Nova Viagem</h3>
+                <div class="ui-field-group">
+                    <span class="ui-field-label">Destino / País *</span>
+                    <input type="text" id="travel-country-input" placeholder="Ex: Japão, França, Salvador..." required class="ui-input">
+                </div>
+                <div class="ui-field-group">
+                    <span class="ui-field-label">URL da Imagem de Capa (Opcional)</span>
+                    <input type="text" id="travel-image-input" placeholder="https://..." class="ui-input">
+                </div>
+                <button onclick="saveNewTravel()" class="w-full bg-app-accent-blue text-white font-bold py-3 rounded-2xl text-xs cursor-pointer">
+                    Criar Roteiro
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- JAVASCRIPT DO APP DE VIAGENS -->
+    <script>
+        const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+
+        // Inicializador de Dropdowns Customizados
+        function initCustomDropdowns() {
+            document.querySelectorAll('.custom-select-container').forEach(container => {
+                const trigger = container.querySelector('.custom-select-trigger');
+                const options = container.querySelectorAll('.custom-option');
+                const hiddenInputId = container.getAttribute('data-id');
+                const hiddenInput = document.getElementById(hiddenInputId);
+
+                const newTrigger = trigger.cloneNode(true);
+                trigger.parentNode.replaceChild(newTrigger, trigger);
+
+                newTrigger.onclick = (e) => {
+                    e.stopPropagation();
+                    document.querySelectorAll('.custom-select-container').forEach(c => {
+                        if (c !== container) c.classList.remove('open');
+                    });
+                    container.classList.toggle('open');
+                };
+
+                options.forEach(option => {
+                    option.onclick = (e) => {
+                        e.stopPropagation();
+                        options.forEach(o => o.classList.remove('selected'));
+                        option.classList.add('selected');
+                        
+                        const val = option.getAttribute('data-value');
+                        newTrigger.querySelector('.trigger-label').innerText = option.innerText;
+                        if (hiddenInput) hiddenInput.value = val;
+                        container.classList.remove('open');
+                    };
+                });
+            });
+        }
+
+        // Banco de Dados Dexie (Exclusivo para Viagens)
+        const db = new Dexie("AppViagens_DB");
+        db.version(1).stores({
+            travels: '++id, country, date, imageUrl, days, currencySymbol, currencyRate, budgetItems'
+        });
+
+        let currentTravelId = null;
+        let currentDayIndex = null;
+        let travelCurrencyDisplayMode = 'LOC';
+
+        function openAddTravelModal() { document.getElementById('modal-add-travel').classList.remove('hidden'); }
+        function closeAddTravelModal() { document.getElementById('modal-add-travel').classList.add('hidden'); }
+
+        async function saveNewTravel() {
+            const country = document.getElementById('travel-country-input').value.trim();
+            const imgUrl = document.getElementById('travel-image-input').value.trim() || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800';
+            
+            if(!country) return alert("Digite o destino da viagem.");
+            
+            await db.travels.add({
+                country: country,
+                date: '',
+                imageUrl: imgUrl,
+                days: [],
+                currencySymbol: 'US$',
+                currencyRate: 5.00,
+                budgetItems: []
+            });
+
+            document.getElementById('travel-country-input').value = '';
+            document.getElementById('travel-image-input').value = '';
+            closeAddTravelModal();
+            loadTravels();
+        }
+
+        async function loadTravels() {
+            const list = await db.travels.toArray();
+            const container = document.getElementById('travel-list-container');
+            container.innerHTML = '';
+
+            if(list.length === 0) {
+                container.innerHTML = '<p class="text-center text-app-subtext py-8 text-xs col-span-2">Nenhuma viagem cadastrada. Clique acima para começar!</p>';
+                return;
+            }
+
+            list.forEach(t => {
+                const daysCount = (t.days || []).length;
+                container.innerHTML += `
+                    <div onclick="openTravelDetails(${t.id})" class="relative h-44 rounded-2xl overflow-hidden border border-app-card-hover shadow-xl cursor-pointer group">
+                        <img src="${t.imageUrl}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
+                        <div class="absolute inset-x-0 bottom-0 p-4">
+                            <h3 class="text-lg font-extrabold text-white uppercase tracking-wider">${t.country}</h3>
+                            <p class="text-xs text-app-accent font-semibold mt-0.5">${daysCount} dia(s) no roteiro</p>
+                        </div>
+                        <button onclick="event.stopPropagation(); deleteTravel(${t.id})" class="absolute top-2 right-2 text-color-cardinal bg-black/60 p-2 rounded-full text-xs hover:bg-black transition">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        async function deleteTravel(id) {
+            if(confirm("Deseja realmente excluir esta viagem e todo o seu roteiro?")) {
+                await db.travels.delete(id);
+                loadTravels();
+            }
+        }
+
+        function setTravelTab(tab) {
+            ['orcamento', 'itinerario'].forEach(t => {
+                const btn = document.getElementById(`ttab-${t}`);
+                const sec = document.getElementById(`tsec-${t}`);
+                if(t === tab) {
+                    btn.className = "flex-1 py-2.5 text-center border-b-2 border-app-accent text-app-accent cursor-pointer";
+                    sec.classList.remove('hidden');
+                } else {
+                    btn.className = "flex-1 py-2.5 text-center border-b-2 border-transparent hover:text-white cursor-pointer";
+                    sec.classList.add('hidden');
+                }
+            });
+        }
+
+        function setCurrencyView(mode) {
+            travelCurrencyDisplayMode = mode;
+            const btnBrl = document.getElementById('cur-BRL');
+            const btnLoc = document.getElementById('cur-LOC');
+            if(mode === 'BRL') {
+                btnBrl.className = "px-2.5 py-1 rounded bg-app-accent-blue text-white cursor-pointer";
+                btnLoc.className = "px-2.5 py-1 rounded bg-input-bg text-app-subtext cursor-pointer";
+            } else {
+                btnLoc.className = "px-2.5 py-1 rounded bg-app-accent-blue text-white cursor-pointer";
+                btnBrl.className = "px-2.5 py-1 rounded bg-input-bg text-app-subtext cursor-pointer";
+            }
+            renderTravelBudget();
+        }
+
+        async function saveTravelBudgetSettings() {
+            if(!currentTravelId) return;
+            const symbol = document.getElementById('travel-currency-symbol').value || 'US$';
+            const rate = parseFloat(document.getElementById('travel-currency-rate').value) || 1.0;
+            await db.travels.update(currentTravelId, { currencySymbol: symbol, currencyRate: rate });
+            renderTravelBudget();
+        }
+
+        function updateBudgetDayOptions(daysLength) {
+            const container = document.getElementById('tb-day-options');
+            if(!container) return;
+            container.innerHTML = `<div class="custom-option selected" data-value="0">Custo Geral / Fixo</div>`;
+            for(let i = 1; i <= daysLength; i++) {
+                container.innerHTML += `<div class="custom-option" data-value="${i}">Dia ${i}</div>`;
+            }
+            initCustomDropdowns();
+        }
+
+        async function openTravelDetails(id) {
+            currentTravelId = id;
+            const t = await db.travels.get(id);
+            if(!t) return;
+
+            document.getElementById('travel-country-title').innerText = t.country;
+            document.getElementById('travel-currency-symbol').value = t.currencySymbol || 'US$';
+            document.getElementById('travel-currency-rate').value = t.currencyRate || 5.00;
+
+            updateBudgetDayOptions(t.days ? t.days.length : 0);
+
+            document.getElementById('travel-main-view').classList.add('hidden');
+            document.getElementById('travel-details-view').classList.remove('hidden');
+
+            setTravelTab('itinerario');
+            renderTravelDays();
+            renderTravelBudget();
+        }
+
+        function closeTravelDetails() {
+            document.getElementById('travel-details-view').classList.add('hidden');
+            document.getElementById('travel-main-view').classList.remove('hidden');
+            loadTravels();
+        }
+
+        async function editTravelHeader() {
+            const t = await db.travels.get(currentTravelId);
+            const newCountry = prompt("Editar nome do destino:", t.country);
+            if(newCountry === null || !newCountry.trim()) return;
+            const newImg = prompt("Editar URL da foto de capa:", t.imageUrl);
+            
+            await db.travels.update(currentTravelId, { country: newCountry.trim(), imageUrl: newImg || t.imageUrl });
+            document.getElementById('travel-country-title').innerText = newCountry.trim();
+        }
+
+        // ================= ORÇAMENTO =================
+        async function addTravelBudgetItem(e) {
+            e.preventDefault();
+            if(!currentTravelId) return;
+
+            const t = await db.travels.get(currentTravelId);
+            const rate = t.currencyRate || 1.0;
+
+            const dayAssigned = parseInt(document.getElementById('tb-day').value) || 0;
+            const category = document.getElementById('tb-category').value;
+            const name = document.getElementById('tb-name').value.trim();
+            const rawPlanned = parseFloat(document.getElementById('tb-planned').value) || 0;
+            const plannedCurr = document.getElementById('tb-planned-currency').value;
+
+            let plannedBRL = rawPlanned;
+            if (plannedCurr === 'LOC') plannedBRL = rawPlanned * rate;
+
+            const items = t.budgetItems || [];
+            items.push({ id: Date.now(), day: dayAssigned, category, name, planned: plannedBRL, realized: 0 });
+            await db.travels.update(currentTravelId, { budgetItems: items });
+
+            document.getElementById('tb-name').value = '';
+            document.getElementById('tb-planned').value = '';
+            renderTravelBudget();
+        }
+
+        async function editTravelBudgetItem(itemId) {
+            const t = await db.travels.get(currentTravelId);
+            const items = t.budgetItems || [];
+            const item = items.find(i => i.id === itemId);
+            if (!item) return;
+
+            const newName = prompt("Editar nome da despesa:", item.name);
+            if(newName === null) return;
+            
+            const rate = t.currencyRate || 1.0;
+            const currentValLoc = (item.planned / rate).toFixed(2);
+            
+            const newValLoc = prompt(`Editar valor planejado (em Moeda Local):`, currentValLoc);
+            if(newValLoc === null) return;
+
+            item.name = newName.trim();
+            item.planned = parseFloat(newValLoc) * rate;
+            
+            await db.travels.update(currentTravelId, { budgetItems: items });
+            renderTravelBudget();
+        }
+
+        async function editBudgetItemRealized(itemId) {
+            const t = await db.travels.get(currentTravelId);
+            const items = t.budgetItems || [];
+            const item = items.find(i => i.id === itemId);
+            if (!item) return;
+
+            const rate = t.currencyRate || 1.0;
+            const currentRealLoc = ((item.realized || 0) / rate).toFixed(2);
+
+            const newRealizedLoc = prompt(`Atualizar valor REALIZADO para "${item.name}" (em Moeda Local):`, currentRealLoc);
+            if (newRealizedLoc === null) return;
+
+            item.realized = parseFloat(newRealizedLoc) * rate;
+            await db.travels.update(currentTravelId, { budgetItems: items });
+            renderTravelBudget();
+        }
+
+        async function deleteTravelBudgetItem(itemId) {
+            if(confirm("Excluir esta despesa do orçamento?")) {
+                const t = await db.travels.get(currentTravelId);
+                const items = (t.budgetItems || []).filter(i => i.id !== itemId);
+                await db.travels.update(currentTravelId, { budgetItems: items });
+                renderTravelBudget();
+            }
+        }
+
+        async function renderTravelBudget() {
+            if(!currentTravelId) return;
+            const t = await db.travels.get(currentTravelId);
+            const items = t.budgetItems || [];
+            const daysCount = (t.days || []).length;
+            const rate = t.currencyRate || 1.0;
+            const symbol = t.currencySymbol || 'US$';
+
+            let totalPlannedBRL = 0;
+            let totalRealizedBRL = 0;
+
+            items.forEach(i => {
+                totalPlannedBRL += (i.planned || 0);
+                totalRealizedBRL += (i.realized || 0);
+            });
+
+            const formatVal = (valBRL) => {
+                if(travelCurrencyDisplayMode === 'BRL') return formatCurrency(valBRL);
+                const locVal = rate > 0 ? (valBRL / rate) : valBRL;
+                return `${symbol} ${locVal.toFixed(2)}`;
+            };
+
+            document.getElementById('travel-total-budget').innerText = formatVal(totalPlannedBRL);
+            document.getElementById('travel-total-spent').innerText = formatVal(totalRealizedBRL);
+
+            const summaryBox = document.getElementById('budget-daily-summary');
+            if (daysCount > 0) {
+                document.getElementById('budget-days-count').innerText = `${daysCount} dia(s) no roteiro`;
+                document.getElementById('budget-daily-planned').innerHTML = `${formatVal(totalPlannedBRL / daysCount)} <span class="text-[9px] font-normal text-app-subtext">/ plan. diário</span>`;
+                summaryBox.classList.remove('hidden');
+            } else {
+                summaryBox.classList.add('hidden');
+            }
+
+            const listContainer = document.getElementById('travel-budget-items-list');
+            listContainer.innerHTML = '';
+
+            for(let d = 0; d <= daysCount; d++) {
+                const dayItems = items.filter(i => (i.day || 0) === d);
+                if(dayItems.length === 0) continue;
+
+                let dayTotal = 0; let dayRealized = 0;
+                dayItems.forEach(i => { dayTotal += i.planned; dayRealized += (i.realized || 0); });
+
+                const title = d === 0 ? "Custos Gerais / Fixos" : `Dia ${d}`;
+                
+                let htmlBlock = `
+                    <div class="bg-app-card border border-app-card-hover rounded-2xl p-4 shadow-md space-y-3">
+                        <div class="border-b border-app-card-hover pb-2 flex justify-between items-end">
+                            <h4 class="font-extrabold text-xs text-app-accent uppercase tracking-wider">${title}</h4>
+                            <div class="text-right">
+                                <span class="text-xs font-bold text-white block">Plan: ${formatVal(dayTotal)}</span>
+                                <span class="text-[10px] text-color-vidaloca font-semibold">Real: ${formatVal(dayRealized)}</span>
+                            </div>
+                        </div>
+                `;
+
+                dayItems.forEach(i => {
+                    htmlBlock += `
+                        <div class="bg-input-bg p-3 rounded-xl border border-app-card-hover/60 flex justify-between items-center text-xs">
+                            <div>
+                                <span class="font-bold text-white block">${i.name}</span>
+                                <span class="text-[10px] text-app-subtext">${i.category}</span>
+                            </div>
+                            <div class="text-right flex items-center gap-2">
+                                <div>
+                                    <span class="font-bold text-white block">${formatVal(i.planned)}</span>
+                                    <span class="text-[10px] text-color-vidaloca font-semibold cursor-pointer hover:underline" onclick="editBudgetItemRealized(${i.id})">Realizado: ${formatVal(i.realized || 0)}</span>
+                                </div>
+                                <div class="flex flex-col gap-1 ml-1.5">
+                                    <button onclick="editTravelBudgetItem(${i.id})" class="text-app-accent p-1 text-xs"><i class="fa-solid fa-pen"></i></button>
+                                    <button onclick="deleteTravelBudgetItem(${i.id})" class="text-color-cardinal p-1 text-xs"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                htmlBlock += `</div>`;
+                listContainer.innerHTML += htmlBlock;
+            }
+        }
+
+        // ================= ITINERÁRIO =================
+        async function addTravelDay() {
+            if(!currentTravelId) return;
+            const summaryInput = document.getElementById('travel-day-summary');
+            const summary = summaryInput.value.trim() || "Passeio";
+            
+            const t = await db.travels.get(currentTravelId);
+            const days = t.days || [];
+            
+            days.push({
+                dayNum: days.length + 1,
+                summary: summary,
+                stops: []
+            });
+
+            await db.travels.update(currentTravelId, { days: days });
+            summaryInput.value = '';
+            renderTravelDays();
+            updateBudgetDayOptions(days.length);
+        }
+
+        async function editTravelDay(dayIdx) {
+            const t = await db.travels.get(currentTravelId);
+            const currentSummary = t.days[dayIdx].summary;
+            const newSummary = prompt("Editar resumo do dia:", currentSummary);
+            if(newSummary === null || !newSummary.trim()) return;
+
+            t.days[dayIdx].summary = newSummary.trim();
+            await db.travels.update(currentTravelId, { days: t.days });
+            renderTravelDays();
+        }
+
+        async function deleteTravelDay(dayIdx) {
+            if(confirm("Excluir este dia do roteiro?")) {
+                const t = await db.travels.get(currentTravelId);
+                t.days.splice(dayIdx, 1);
+                t.days.forEach((d, i) => d.dayNum = i + 1);
+                await db.travels.update(currentTravelId, { days: t.days });
+                renderTravelDays();
+                updateBudgetDayOptions(t.days.length);
+                renderTravelBudget();
+            }
+        }
+
+        async function renderTravelDays() {
+            const t = await db.travels.get(currentTravelId);
+            const container = document.getElementById('travel-days-container');
+            container.innerHTML = '';
+
+            const days = t.days || [];
+            if(days.length === 0) {
+                container.innerHTML = '<p class="text-center text-app-subtext py-6 text-xs">Nenhum dia adicionado ao roteiro.</p>';
+                return;
+            }
+
+            days.forEach((d, idx) => {
+                const stopsCount = (d.stops || []).length;
+                container.innerHTML += `
+                    <div class="relative bg-app-card border border-app-card-hover rounded-2xl p-4 flex items-center gap-3 shadow-md cursor-pointer hover:bg-app-card-hover transition"
+                         onclick="openDayDetail(${idx})">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-xs font-extrabold text-app-accent uppercase tracking-wider">Dia ${d.dayNum}</h3>
+                            <p class="text-sm font-bold text-white truncate leading-snug mt-0.5">${d.summary}</p>
+                            <p class="text-[10px] text-app-subtext mt-1 flex items-center gap-1">
+                                <i class="fa-solid fa-location-dot text-[9px]"></i> ${stopsCount} atividade(s)
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="event.stopPropagation(); editTravelDay(${idx})" class="text-app-subtext hover:text-white p-2 text-xs"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="event.stopPropagation(); deleteTravelDay(${idx})" class="text-color-cardinal p-2 text-xs"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // ================= DETALHE DO DIA =================
+        async function openDayDetail(idx) {
+            currentDayIndex = idx;
+            const t = await db.travels.get(currentTravelId);
+            const d = t.days[idx];
+
+            document.getElementById('day-detail-number-title').innerText = `Dia ${d.dayNum}`;
+            document.getElementById('day-detail-summary-display').innerText = d.summary;
+
+            renderDayTimeline(d.stops || []);
+            document.getElementById('travel-details-view').classList.add('hidden');
+            document.getElementById('travel-day-detail-view').classList.remove('hidden');
+        }
+
+        function closeDayDetail() {
+            document.getElementById('travel-day-detail-view').classList.add('hidden');
+            document.getElementById('travel-details-view').classList.remove('hidden');
+            renderTravelDays();
+        }
+
+        function renderDayTimeline(stops) {
+            const container = document.getElementById('day-timeline-container');
+            container.innerHTML = '';
+
+            if(stops.length === 0) {
+                container.innerHTML = '<p class="text-app-subtext text-xs italic">Nenhuma atividade cadastrada neste dia.</p>';
+                return;
+            }
+
+            stops.sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
+
+            stops.forEach((s, idx) => {
+                const isDone = s.done ? 'line-through opacity-40' : '';
+                
+                container.innerHTML += `
+                    <div class="relative pl-2 pb-2">
+                        <div class="absolute -left-[23px] top-1.5 w-3 h-3 rounded-full bg-app-accent border-2 border-black"></div>
+                        
+                        <div class="flex items-start gap-2.5">
+                            <div class="pt-0.5">
+                                <input type="checkbox" ${s.done ? 'checked' : ''} onclick="event.stopPropagation(); toggleTimelineStop(${idx}, this.checked)" class="round-cb-sm flex-shrink-0">
+                            </div>
+                            <span class="text-xs font-bold text-app-subtext w-10 pt-0.5 flex-shrink-0 ${isDone}">${s.time || '09:00'}</span>
+                            
+                            <div class="flex-1 space-y-1">
+                                <div class="flex justify-between items-start">
+                                    <h4 class="text-sm font-bold text-white leading-snug ${isDone}">${s.title}</h4>
+                                    <div class="flex items-center gap-1.5">
+                                        <button onclick="event.stopPropagation(); toggleStopTransport(${idx})" class="text-app-subtext hover:text-white p-1 cursor-pointer">
+                                            <i class="fa-solid fa-chevron-down text-[10px]" id="stop-icon-${idx}"></i>
+                                        </button>
+                                        <button onclick="editTimelineStop(${idx})" class="text-app-accent p-1 text-[11px] cursor-pointer"><i class="fa-solid fa-pen"></i></button>
+                                        <button onclick="removeTimelineStop(${idx})" class="text-color-cardinal p-1 text-[11px] cursor-pointer"><i class="fa-solid fa-trash"></i></button>
+                                    </div>
+                                </div>
+                                ${s.desc ? `<p class="text-xs text-app-subtext whitespace-pre-wrap ${isDone}">${s.desc}</p>` : ''}
+                                
+                                <div id="stop-transport-panel-${idx}" class="hidden mt-2 p-2.5 bg-[#1C1C1E] rounded-xl border border-gray-700/50 shadow-inner">
+                                    <div class="flex items-center gap-1.5 mb-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                                        <i class="fa-solid fa-train-subway text-app-accent"></i> Locomoção / Anotações
+                                    </div>
+                                    <textarea id="stop-transport-input-${idx}" class="w-full bg-transparent text-gray-200 text-xs outline-none resize-none h-14 placeholder-gray-600" placeholder="Anotações de ônibus, roteiro, metrô...">${s.transport || ''}</textarea>
+                                    <button onclick="saveStopTransport(${idx})" class="mt-1 w-full bg-gray-800 hover:bg-gray-700 text-gray-200 py-1 rounded-lg font-bold text-[10px] transition cursor-pointer">Salvar Nota</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function toggleTimelineStop(stopIdx, isChecked) {
+            const t = await db.travels.get(currentTravelId);
+            t.days[currentDayIndex].stops[stopIdx].done = isChecked;
+            await db.travels.update(currentTravelId, { days: t.days });
+            renderDayTimeline(t.days[currentDayIndex].stops);
+        }
+
+        function toggleStopTransport(idx) {
+            const panel = document.getElementById(`stop-transport-panel-${idx}`);
+            const icon = document.getElementById(`stop-icon-${idx}`);
+            panel.classList.toggle('hidden');
+            icon.classList.toggle('fa-chevron-up');
+            icon.classList.toggle('fa-chevron-down');
+        }
+
+        async function saveStopTransport(idx) {
+            const val = document.getElementById(`stop-transport-input-${idx}`).value;
+            const t = await db.travels.get(currentTravelId);
+            t.days[currentDayIndex].stops[idx].transport = val;
+            await db.travels.update(currentTravelId, { days: t.days });
+            toggleStopTransport(idx);
+        }
+
+        async function addTimelineStop() {
+            const timeVal = document.getElementById('new-stop-time').value;
+            const titleVal = document.getElementById('new-stop-title').value.trim();
+            const descVal = document.getElementById('new-stop-desc').value.trim();
+            if(!titleVal) return alert("Digite o nome da atividade.");
+
+            const t = await db.travels.get(currentTravelId);
+            if(!t.days[currentDayIndex].stops) t.days[currentDayIndex].stops = [];
+            t.days[currentDayIndex].stops.push({ time: timeVal, title: titleVal, desc: descVal, done: false });
+            await db.travels.update(currentTravelId, { days: t.days });
+
+            document.getElementById('new-stop-title').value = '';
+            document.getElementById('new-stop-desc').value = '';
+            renderDayTimeline(t.days[currentDayIndex].stops);
+        }
+
+        async function editTimelineStop(stopIdx) {
+            const t = await db.travels.get(currentTravelId);
+            const stop = t.days[currentDayIndex].stops[stopIdx];
+            const newTitle = prompt("Editar nome da atividade:", stop.title);
+            if(newTitle === null) return;
+            const newDesc = prompt("Editar descrição/instruções:", stop.desc || "");
+            if(newDesc === null) return;
+            
+            stop.title = newTitle.trim();
+            stop.desc = newDesc.trim();
+            await db.travels.update(currentTravelId, { days: t.days });
+            renderDayTimeline(t.days[currentDayIndex].stops);
+        }
+
+        async function removeTimelineStop(stopIdx) {
+            if(confirm("Excluir esta atividade do dia?")) {
+                const t = await db.travels.get(currentTravelId);
+                t.days[currentDayIndex].stops.splice(stopIdx, 1);
+                await db.travels.update(currentTravelId, { days: t.days });
+                renderDayTimeline(t.days[currentDayIndex].stops);
+            }
+        }
+
+        // Inicialização do App
+        initCustomDropdowns();
+        loadTravels();
+    </script>
+</body>
+</html>
 
