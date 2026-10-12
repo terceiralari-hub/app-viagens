@@ -30,9 +30,10 @@
         }
     </script>
 
-    <!-- FontAwesome & Dexie.js -->
+    <!-- FontAwesome, Dexie.js & Chart.js -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         ::-webkit-scrollbar { display: none; }
@@ -72,7 +73,7 @@
             width: 100%; background-color: #F7F5F2; color: #2D2D2D;
             font-size: 13px; font-weight: 500; padding: 12px 16px;
             border-radius: 18px; border: 1px solid #E5E0D8;
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex; justify-between: space-between; align-items: center;
             cursor: pointer; transition: all 0.2s ease; user-select: none;
         }
         .custom-select-container.open .custom-select-options { display: block; animation: fadeIn 0.15s ease-out; }
@@ -86,18 +87,22 @@
         .custom-option { padding: 10px 14px; font-size: 13px; font-weight: 500; border-radius: 12px; cursor: pointer; color: #2D2D2D; }
         .custom-option:hover, .custom-option.selected { background-color: #F7F5F2; color: #EE9F80; font-weight: 700; }
 
+        /* CHECKBOX MINIMALISTA E COM BORDA FINA */
         .round-cb-sm {
-            appearance: none; width: 1.1rem; height: 1.1rem;
-            border: 2px solid #D5A0A8; border-radius: 50%;
-            display: grid; place-content: center; cursor: pointer; margin-right: 0.5rem; flex-shrink: 0;
-            position: relative; z-index: 10; background-color: #FFFFFF;
+            appearance: none; width: 0.95rem; height: 0.95rem;
+            border: 1px solid #D5A0A8; border-radius: 50%;
+            display: grid; place-content: center; cursor: pointer; margin-right: 0.4rem; flex-shrink: 0;
+            position: relative; z-index: 10; background-color: #FFFFFF; transition: all 0.15s ease;
         }
         .round-cb-sm::before {
-            content: ""; width: 0.55rem; height: 0.55rem; border-radius: 50%;
+            content: ""; width: 0.45rem; height: 0.45rem; border-radius: 50%;
             transform: scale(0); transition: 0.15s transform ease-in-out; background-color: #E37E7F;
         }
         .round-cb-sm:checked { border-color: #E37E7F; }
         .round-cb-sm:checked::before { transform: scale(1); }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
@@ -107,7 +112,7 @@
 
     <main class="max-w-md sm:max-w-xl md:max-w-2xl mx-auto space-y-5">
         
-        <!-- MENU SUPERIOR INICIAL (ESTILO "HERO CARD" ANEXADO) -->
+        <!-- MENU SUPERIOR INICIAL -->
         <header id="main-hero-header" class="bg-palette-sunrise rounded-b-[2.5rem] p-6 pb-8 text-app-text shadow-sm relative overflow-hidden transition-all duration-300">
             <div class="flex justify-between items-start">
                 <div>
@@ -137,15 +142,20 @@
 
             <!-- TELA 2: DETALHES DA VIAGEM SELECIONADA -->
             <section id="travel-details-view" class="hidden space-y-4">
-                <!-- Cabeçalho Roxo/Colorido Superior com Seta (Estilo da imagem anexada) -->
+                <!-- Cabeçalho Superior com Ações -->
                 <div class="bg-palette-berry rounded-3xl p-5 text-white shadow-sm space-y-3 relative">
                     <div class="flex items-center justify-between">
                         <button onclick="closeTravelDetails()" class="w-10 h-10 rounded-full bg-white text-app-text flex items-center justify-center shadow hover:bg-palette-linen transition cursor-pointer">
                             <i class="fa-solid fa-arrow-left text-sm"></i>
                         </button>
-                        <button onclick="editTravelHeader()" class="text-xs font-bold text-white/80 hover:text-white px-3 py-1.5 rounded-full border border-white/20">
-                            <i class="fa-solid fa-pen text-[10px]"></i> Editar
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="shareTravelWhatsApp()" class="bg-white/20 hover:bg-white/30 text-white font-bold px-3 py-1.5 rounded-full text-xs transition cursor-pointer flex items-center gap-1">
+                                <i class="fa-brands fa-whatsapp"></i> Compartilhar
+                            </button>
+                            <button onclick="openEditTravelHeaderModal()" class="text-xs font-bold text-white/80 hover:text-white px-3 py-1.5 rounded-full border border-white/20 cursor-pointer">
+                                <i class="fa-solid fa-pen text-[10px]"></i> Editar
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <span class="text-[10px] uppercase font-bold text-white/70 tracking-wider">Destino Selecionado</span>
@@ -153,10 +163,11 @@
                     </div>
                 </div>
 
-                <!-- Abas Internas estilo pílula limpa -->
+                <!-- Abas Internas -->
                 <div class="bg-white p-1.5 rounded-full shadow-sm border border-gray-200/60 flex text-xs font-bold">
                     <button onclick="setTravelTab('itinerario')" id="ttab-itinerario" class="flex-1 py-2.5 rounded-full text-center transition cursor-pointer bg-palette-sunrise text-white shadow-sm">Itinerário</button>
                     <button onclick="setTravelTab('orcamento')" id="ttab-orcamento" class="flex-1 py-2.5 rounded-full text-center transition cursor-pointer text-app-subtext hover:text-app-text">Orçamento</button>
+                    <button onclick="setTravelTab('acerto')" id="ttab-acerto" class="flex-1 py-2.5 rounded-full text-center transition cursor-pointer text-app-subtext hover:text-app-text">Divisão</button>
                 </div>
 
                 <!-- ================= ABA ITINERÁRIO ================= -->
@@ -167,9 +178,15 @@
                         <h4 class="font-bold text-xs text-app-text flex items-center gap-2">
                             <i class="fa-solid fa-calendar-plus text-palette-sunrise"></i> Adicionar Novo Dia
                         </h4>
-                        <div class="ui-field-group">
-                            <span class="ui-field-label">Resumo do Dia</span>
-                            <input type="text" id="travel-day-summary" placeholder="Ex: Passeio no centro histórico..." class="ui-input">
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="ui-field-group col-span-1">
+                                <span class="ui-field-label">Data (Opcional)</span>
+                                <input type="date" id="travel-day-date" class="ui-input !py-2">
+                            </div>
+                            <div class="ui-field-group col-span-2">
+                                <span class="ui-field-label">Resumo do Dia</span>
+                                <input type="text" id="travel-day-summary" placeholder="Ex: Passeio no centro histórico..." class="ui-input !py-2">
+                            </div>
                         </div>
                         <button onclick="addTravelDay()" class="w-full bg-palette-sunrise text-white p-3 rounded-2xl font-black text-xs cursor-pointer hover:opacity-90 transition shadow-sm">
                             + Adicionar Dia ao Roteiro
@@ -183,7 +200,7 @@
                         <p class="text-[10px] uppercase font-bold text-app-subtext tracking-wider">Orçamento da Viagem</p>
                         <h2 class="text-3xl font-black text-palette-watermelon" id="travel-total-budget">R$ 0,00</h2>
                         <div class="pt-2 border-t border-gray-100 flex justify-between items-center text-xs font-semibold px-2">
-                            <span class="text-app-subtext">Realizado:</span>
+                            <span class="text-app-subtext">Realizado Total:</span>
                             <span class="text-palette-berry font-bold" id="travel-total-spent">R$ 0,00</span>
                         </div>
                     </div>
@@ -198,6 +215,7 @@
                         </div>
                     </div>
 
+                    <!-- Configuração de Moeda Local -->
                     <div class="bg-white border border-gray-200/60 p-4 rounded-3xl space-y-3 shadow-sm">
                         <div class="flex justify-between items-center">
                             <h4 class="font-bold text-xs text-app-text flex items-center gap-2">
@@ -220,18 +238,36 @@
                         </div>
                     </div>
 
+                    <!-- Formulário de Despesa -->
                     <form id="form-travel-budget" onsubmit="addTravelBudgetItem(event)" class="bg-white border border-gray-200/60 p-4 rounded-3xl shadow-sm space-y-3">
                         <h4 class="font-bold text-xs text-app-text">Adicionar Custo ao Orçamento</h4>
                         
-                        <div class="ui-field-group">
-                            <span class="ui-field-label">Dia da Despesa</span>
-                            <div class="custom-select-container" data-id="tb-day">
-                                <div class="custom-select-trigger !py-2 !text-xs" tabindex="0">
-                                    <span class="trigger-label" id="tb-day-label">Custo Geral / Fixo</span>
-                                    <i class="fa-solid fa-chevron-down text-palette-sunrise text-[8px]"></i>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="ui-field-group">
+                                <span class="ui-field-label">Dia da Despesa</span>
+                                <div class="custom-select-container" data-id="tb-day">
+                                    <div class="custom-select-trigger !py-2 !text-xs" tabindex="0">
+                                        <span class="trigger-label" id="tb-day-label">Custo Geral / Fixo</span>
+                                        <i class="fa-solid fa-chevron-down text-palette-sunrise text-[8px]"></i>
+                                    </div>
+                                    <div class="custom-select-options" id="tb-day-options"></div>
+                                    <input type="hidden" id="tb-day" value="0">
                                 </div>
-                                <div class="custom-select-options" id="tb-day-options"></div>
-                                <input type="hidden" id="tb-day" value="0">
+                            </div>
+                            <div class="ui-field-group">
+                                <span class="ui-field-label">Quem Pagou</span>
+                                <div class="custom-select-container" data-id="tb-payer">
+                                    <div class="custom-select-trigger !py-2 !text-xs" tabindex="0">
+                                        <span class="trigger-label">Larissa</span>
+                                        <i class="fa-solid fa-chevron-down text-palette-sunrise text-[8px]"></i>
+                                    </div>
+                                    <div class="custom-select-options">
+                                        <div class="custom-option selected" data-value="Larissa">Larissa</div>
+                                        <div class="custom-option" data-value="Pedro">Pedro</div>
+                                        <div class="custom-option" data-value="Geral">Geral (Caixinha)</div>
+                                    </div>
+                                    <input type="hidden" id="tb-payer" value="Larissa">
+                                </div>
                             </div>
                         </div>
 
@@ -287,6 +323,31 @@
                     </form>
 
                     <div id="travel-budget-items-list" class="space-y-4"></div>
+
+                    <!-- CAIXINHA EXPANSÍVEL COM GRÁFICO DE ROSCA DE DISTRIBUIÇÃO DE CUSTOS -->
+                    <div class="bg-white border border-gray-200/60 rounded-3xl p-4 shadow-sm">
+                        <button onclick="toggleChartPanel()" class="w-full text-left font-bold text-xs text-palette-sunrise flex justify-between items-center cursor-pointer">
+                            <span><i class="fa-solid fa-chart-pie mr-1.5"></i> Distribuição de Custos por Categoria</span>
+                            <i class="fa-solid fa-chevron-down" id="chart-panel-icon"></i>
+                        </button>
+
+                        <div id="travel-chart-panel" class="hidden mt-4 pt-3 border-t border-gray-100 space-y-3">
+                            <div class="h-48 relative flex items-center justify-center">
+                                <canvas id="travelCategoryChart"></canvas>
+                            </div>
+                            <div id="travel-chart-legend" class="space-y-1.5 text-xs pt-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================= ABA DIVISÃO / ACERTO ================= -->
+                <div id="tsec-acerto" class="hidden space-y-4">
+                    <div class="bg-white border border-gray-200/60 p-5 rounded-3xl shadow-sm space-y-3">
+                        <h4 class="font-bold text-xs text-app-text flex items-center gap-2">
+                            <i class="fa-solid fa-scale-balanced text-palette-sunrise"></i> Resumo de Pagamentos e Divisão
+                        </h4>
+                        <div id="acerto-summary-container" class="space-y-2"></div>
+                    </div>
                 </div>
             </section>
 
@@ -307,6 +368,9 @@
                         <h3 id="day-detail-summary-display" class="text-lg font-black text-app-text leading-tight"></h3>
                         <p class="text-xs text-app-subtext mt-0.5">Programação e paradas do dia</p>
                     </div>
+
+                    <!-- Carrossel de Fotos do Dia em Detalhe -->
+                    <div id="day-detail-photos-carousel-container"></div>
 
                     <div id="day-timeline-container" class="space-y-4 relative border-l-2 border-palette-sky/80 ml-3 pl-4"></div>
 
@@ -357,10 +421,137 @@
             </div>
         </div>
 
+        <!-- MODAL: EDITAR DESTINO E CÂMBIO -->
+        <div id="modal-edit-travel-header" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white border border-gray-200/60 rounded-3xl max-w-sm w-full p-6 space-y-4 relative shadow-xl">
+                <button onclick="closeEditTravelHeaderModal()" class="absolute top-4 right-4 text-app-subtext hover:text-app-text w-8 h-8 rounded-full bg-palette-linen flex items-center justify-center cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <h3 class="text-lg font-black text-app-text">Editar Informações da Viagem</h3>
+                
+                <div class="ui-field-group">
+                    <span class="ui-field-label">Nome do Destino</span>
+                    <input type="text" id="modal-edit-country" class="ui-input">
+                </div>
+                <div class="ui-field-group">
+                    <span class="ui-field-label">URL Foto da Capa</span>
+                    <input type="text" id="modal-edit-image" class="ui-input">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="ui-field-group">
+                        <span class="ui-field-label">Símbolo Local</span>
+                        <input type="text" id="modal-edit-symbol" class="ui-input">
+                    </div>
+                    <div class="ui-field-group">
+                        <span class="ui-field-label">Cotação (1 LOC = R$)</span>
+                        <input type="number" step="0.0001" id="modal-edit-rate" class="ui-input">
+                    </div>
+                </div>
+
+                <button onclick="saveEditTravelHeaderModal()" class="w-full bg-palette-sunrise text-white font-black py-3 rounded-2xl text-xs cursor-pointer shadow-sm hover:opacity-90 transition">
+                    Salvar Alterações
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL: EDITAR ITEM DO ORÇAMENTO (TUDO DE UMA VEZ) -->
+        <div id="modal-edit-budget-item" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white border border-gray-200/60 rounded-3xl max-w-sm w-full p-6 space-y-4 relative shadow-xl">
+                <button onclick="closeEditBudgetItemModal()" class="absolute top-4 right-4 text-app-subtext hover:text-app-text w-8 h-8 rounded-full bg-palette-linen flex items-center justify-center cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <h3 class="text-lg font-black text-app-text">Editar Custo do Orçamento</h3>
+                <input type="hidden" id="modal-edit-b-id">
+
+                <div class="ui-field-group">
+                    <span class="ui-field-label">Nome do Item</span>
+                    <input type="text" id="modal-edit-b-name" class="ui-input">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="ui-field-group">
+                        <span class="ui-field-label">Categoria</span>
+                        <div class="custom-select-container" data-id="modal-edit-b-category">
+                            <div class="custom-select-trigger !py-2 !text-xs" tabindex="0">
+                                <span class="trigger-label" id="modal-edit-b-cat-label">Alimentação</span>
+                                <i class="fa-solid fa-chevron-down text-palette-sunrise text-[8px]"></i>
+                            </div>
+                            <div class="custom-select-options">
+                                <div class="custom-option" data-value="Voo">Voo</div>
+                                <div class="custom-option" data-value="Transporte">Transporte</div>
+                                <div class="custom-option" data-value="Hospedagem">Hospedagem</div>
+                                <div class="custom-option" data-value="Alimentação">Alimentação</div>
+                                <div class="custom-option" data-value="Atividades">Atividades</div>
+                                <div class="custom-option" data-value="Outros">Outros</div>
+                            </div>
+                            <input type="hidden" id="modal-edit-b-category" value="Alimentação">
+                        </div>
+                    </div>
+
+                    <div class="ui-field-group">
+                        <span class="ui-field-label">Quem Pagou</span>
+                        <div class="custom-select-container" data-id="modal-edit-b-payer">
+                            <div class="custom-select-trigger !py-2 !text-xs" tabindex="0">
+                                <span class="trigger-label" id="modal-edit-b-payer-label">Larissa</span>
+                                <i class="fa-solid fa-chevron-down text-palette-sunrise text-[8px]"></i>
+                            </div>
+                            <div class="custom-select-options">
+                                <div class="custom-option" data-value="Larissa">Larissa</div>
+                                <div class="custom-option" data-value="Pedro">Pedro</div>
+                                <div class="custom-option" data-value="Geral">Geral (Caixinha)</div>
+                            </div>
+                            <input type="hidden" id="modal-edit-b-payer" value="Larissa">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="ui-field-group">
+                        <span class="ui-field-label">Planejado (Moeda Local)</span>
+                        <input type="number" step="0.01" id="modal-edit-b-planned-loc" class="ui-input">
+                    </div>
+                    <div class="ui-field-group">
+                        <span class="ui-field-label">Realizado (Moeda Local)</span>
+                        <input type="number" step="0.01" id="modal-edit-b-realized-loc" class="ui-input">
+                    </div>
+                </div>
+
+                <button onclick="saveEditBudgetItemModal()" class="w-full bg-palette-sunrise text-white font-black py-3 rounded-2xl text-xs cursor-pointer shadow-sm hover:opacity-90 transition">
+                    Salvar Alterações
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL: GERENCIAR FOTOS DO DIA -->
+        <div id="modal-manage-day-photos" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white border border-gray-200/60 rounded-3xl max-w-sm w-full p-6 space-y-4 relative shadow-xl">
+                <button onclick="closeDayPhotosModal()" class="absolute top-4 right-4 text-app-subtext hover:text-app-text w-8 h-8 rounded-full bg-palette-linen flex items-center justify-center cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <h3 class="text-lg font-black text-app-text" id="day-photos-modal-title">Fotos do Dia</h3>
+                
+                <div class="ui-field-group">
+                    <span class="ui-field-label">URL da Nova Foto</span>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-day-photo-url" placeholder="https://..." class="ui-input">
+                        <button onclick="addDayPhoto()" class="bg-palette-sunrise text-white font-black px-4 py-2 rounded-2xl text-base flex-shrink-0 cursor-pointer shadow-sm">+</button>
+                    </div>
+                </div>
+
+                <div id="day-photos-list" class="space-y-2 max-h-56 overflow-y-auto pr-1 border-t border-gray-100 pt-3"></div>
+
+                <button onclick="closeDayPhotosModal()" class="w-full bg-palette-linen text-app-text font-black py-2.5 rounded-2xl text-xs cursor-pointer hover:bg-gray-200 transition">
+                    Concluído
+                </button>
+            </div>
+        </div>
+
     </main>
 
     <script>
         const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+
+        const VIBRANT_PALETTE = ['#EE9F80', '#D5A0A8', '#D2DDE7', '#E37E7F', '#5274FF', '#30D158', '#FFC107'];
 
         function initCustomDropdowns() {
             document.querySelectorAll('.custom-select-container').forEach(container => {
@@ -396,12 +587,13 @@
         }
 
         const db = new Dexie("AppViagens_DB");
-        db.version(1).stores({
+        db.version(2).stores({
             travels: '++id, country, date, imageUrl, days, currencySymbol, currencyRate, budgetItems'
         });
 
         let currentTravelId = null;
         let currentDayIndex = null;
+        let photoTargetDayIndex = null;
         let travelCurrencyDisplayMode = 'LOC';
 
         function openAddTravelModal() { document.getElementById('modal-add-travel').classList.remove('hidden'); }
@@ -465,7 +657,7 @@
         }
 
         function setTravelTab(tab) {
-            ['orcamento', 'itinerario'].forEach(t => {
+            ['orcamento', 'itinerario', 'acerto'].forEach(t => {
                 const btn = document.getElementById(`ttab-${t}`);
                 const sec = document.getElementById(`tsec-${t}`);
                 if(t === tab) {
@@ -476,6 +668,8 @@
                     sec.classList.add('hidden');
                 }
             });
+            if(tab === 'acerto') renderAcertoSummary();
+            if(tab === 'orcamento') renderCategoryChart();
         }
 
         function setCurrencyView(mode) {
@@ -521,9 +715,7 @@
 
             updateBudgetDayOptions(t.days ? t.days.length : 0);
 
-            // Oculta menu superior principal ao navegar
             document.getElementById('main-hero-header').classList.add('hidden');
-
             document.getElementById('travel-main-view').classList.add('hidden');
             document.getElementById('travel-details-view').classList.remove('hidden');
 
@@ -535,20 +727,72 @@
         function closeTravelDetails() {
             document.getElementById('travel-details-view').classList.add('hidden');
             document.getElementById('travel-main-view').classList.remove('hidden');
-            
-            // Exibe novamente o menu superior principal na tela inicial
             document.getElementById('main-hero-header').classList.remove('hidden');
             loadTravels();
         }
 
-        async function editTravelHeader() {
+        /* MODAL DE EDIÇÃO DO DESTINO E CÂMBIO */
+        async function openEditTravelHeaderModal() {
             const t = await db.travels.get(currentTravelId);
-            const newCountry = prompt("Editar nome do destino:", t.country);
-            if(newCountry === null || !newCountry.trim()) return;
-            const newImg = prompt("Editar URL da foto de capa:", t.imageUrl);
+            if(!t) return;
+            document.getElementById('modal-edit-country').value = t.country;
+            document.getElementById('modal-edit-image').value = t.imageUrl;
+            document.getElementById('modal-edit-symbol').value = t.currencySymbol || 'US$';
+            document.getElementById('modal-edit-rate').value = t.currencyRate || 5.00;
+            document.getElementById('modal-edit-travel-header').classList.remove('hidden');
+        }
+
+        function closeEditTravelHeaderModal() {
+            document.getElementById('modal-edit-travel-header').classList.add('hidden');
+        }
+
+        async function saveEditTravelHeaderModal() {
+            const country = document.getElementById('modal-edit-country').value.trim();
+            const imgUrl = document.getElementById('modal-edit-image').value.trim();
+            const symbol = document.getElementById('modal-edit-symbol').value.trim() || 'US$';
+            const rate = parseFloat(document.getElementById('modal-edit-rate').value) || 1.0;
+
+            if(!country) return alert("Digite o nome do destino.");
+
+            await db.travels.update(currentTravelId, {
+                country, imageUrl: imgUrl, currencySymbol: symbol, currencyRate: rate
+            });
+
+            document.getElementById('travel-country-title').innerText = country;
+            document.getElementById('travel-currency-symbol').value = symbol;
+            document.getElementById('travel-currency-rate').value = rate;
+
+            closeEditTravelHeaderModal();
+            renderTravelBudget();
+        }
+
+        async function shareTravelWhatsApp() {
+            const t = await db.travels.get(currentTravelId);
+            if(!t) return;
+
+            let msg = `✈️ *Roteiro de Viagem: ${t.country.toUpperCase()}*\n\n`;
             
-            await db.travels.update(currentTravelId, { country: newCountry.trim(), imageUrl: newImg || t.imageUrl });
-            document.getElementById('travel-country-title').innerText = newCountry.trim();
+            const days = t.days || [];
+            if(days.length > 0) {
+                msg += `📅 *ITINERÁRIO*\n`;
+                days.forEach(d => {
+                    const dateStr = d.date ? ` (${d.date.split('-').reverse().join('/')})` : '';
+                    msg += `*Dia ${d.dayNum}${dateStr}:* ${d.summary}\n`;
+                    (d.stops || []).forEach(s => {
+                        msg += `  • ${s.time || '09:00'} - ${s.title}\n`;
+                    });
+                    msg += `\n`;
+                });
+            }
+
+            const items = t.budgetItems || [];
+            if(items.length > 0) {
+                let totalPlan = 0;
+                items.forEach(i => totalPlan += (i.planned || 0));
+                msg += `💰 *ORÇAMENTO ESTIMADO:* ${formatCurrency(totalPlan)}\n`;
+            }
+
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
         // ================= ORÇAMENTO =================
@@ -560,6 +804,7 @@
             const rate = t.currencyRate || 1.0;
 
             const dayAssigned = parseInt(document.getElementById('tb-day').value) || 0;
+            const payer = document.getElementById('tb-payer').value || 'Larissa';
             const category = document.getElementById('tb-category').value;
             const name = document.getElementById('tb-name').value.trim();
             const rawPlanned = parseFloat(document.getElementById('tb-planned').value) || 0;
@@ -569,7 +814,7 @@
             if (plannedCurr === 'LOC') plannedBRL = rawPlanned * rate;
 
             const items = t.budgetItems || [];
-            items.push({ id: Date.now(), day: dayAssigned, category, name, planned: plannedBRL, realized: 0 });
+            items.push({ id: Date.now(), day: dayAssigned, payer, category, name, planned: plannedBRL, realized: 0 });
             await db.travels.update(currentTravelId, { budgetItems: items });
 
             document.getElementById('tb-name').value = '';
@@ -577,42 +822,59 @@
             renderTravelBudget();
         }
 
-        async function editTravelBudgetItem(itemId) {
+        /* EDITAR ITEM DO ORÇAMENTO VIA MODAL COMPLETO */
+        async function openEditBudgetItemModal(itemId) {
             const t = await db.travels.get(currentTravelId);
             const items = t.budgetItems || [];
             const item = items.find(i => i.id === itemId);
             if (!item) return;
 
-            const newName = prompt("Editar nome da despesa:", item.name);
-            if(newName === null) return;
-            
             const rate = t.currencyRate || 1.0;
-            const currentValLoc = (item.planned / rate).toFixed(2);
-            
-            const newValLoc = prompt(`Editar valor planejado (em Moeda Local):`, currentValLoc);
-            if(newValLoc === null) return;
 
-            item.name = newName.trim();
-            item.planned = parseFloat(newValLoc) * rate;
+            document.getElementById('modal-edit-b-id').value = item.id;
+            document.getElementById('modal-edit-b-name').value = item.name;
             
-            await db.travels.update(currentTravelId, { budgetItems: items });
-            renderTravelBudget();
+            document.getElementById('modal-edit-b-category').value = item.category || 'Alimentação';
+            document.getElementById('modal-edit-b-cat-label').innerText = item.category || 'Alimentação';
+            
+            document.getElementById('modal-edit-b-payer').value = item.payer || 'Larissa';
+            document.getElementById('modal-edit-b-payer-label').innerText = item.payer || 'Larissa';
+
+            document.getElementById('modal-edit-b-planned-loc').value = (item.planned / rate).toFixed(2);
+            document.getElementById('modal-edit-b-realized-loc').value = ((item.realized || 0) / rate).toFixed(2);
+
+            document.getElementById('modal-edit-budget-item').classList.remove('hidden');
         }
 
-        async function editBudgetItemRealized(itemId) {
+        function closeEditBudgetItemModal() {
+            document.getElementById('modal-edit-budget-item').classList.add('hidden');
+        }
+
+        async function saveEditBudgetItemModal() {
+            const itemId = parseInt(document.getElementById('modal-edit-b-id').value, 10);
+            const name = document.getElementById('modal-edit-b-name').value.trim();
+            const category = document.getElementById('modal-edit-b-category').value;
+            const payer = document.getElementById('modal-edit-b-payer').value;
+            const plannedLoc = parseFloat(document.getElementById('modal-edit-b-planned-loc').value) || 0;
+            const realizedLoc = parseFloat(document.getElementById('modal-edit-b-realized-loc').value) || 0;
+
+            if(!name) return alert("Digite o nome da despesa.");
+
             const t = await db.travels.get(currentTravelId);
+            const rate = t.currencyRate || 1.0;
             const items = t.budgetItems || [];
             const item = items.find(i => i.id === itemId);
-            if (!item) return;
 
-            const rate = t.currencyRate || 1.0;
-            const currentRealLoc = ((item.realized || 0) / rate).toFixed(2);
+            if(item) {
+                item.name = name;
+                item.category = category;
+                item.payer = payer;
+                item.planned = plannedLoc * rate;
+                item.realized = realizedLoc * rate;
+                await db.travels.update(currentTravelId, { budgetItems: items });
+            }
 
-            const newRealizedLoc = prompt(`Atualizar valor REALIZADO para "${item.name}" (em Moeda Local):`, currentRealLoc);
-            if (newRealizedLoc === null) return;
-
-            item.realized = parseFloat(newRealizedLoc) * rate;
-            await db.travels.update(currentTravelId, { budgetItems: items });
+            closeEditBudgetItemModal();
             renderTravelBudget();
         }
 
@@ -683,20 +945,24 @@
                 `;
 
                 dayItems.forEach(i => {
+                    const payerTag = i.payer ? `<span class="bg-palette-linen text-app-text px-1.5 py-0.5 rounded text-[9px] font-bold border border-gray-200">${i.payer}</span>` : '';
                     htmlBlock += `
                         <div class="bg-palette-linen/60 p-3 rounded-2xl border border-gray-200/40 flex justify-between items-center text-xs">
                             <div>
-                                <span class="font-bold text-app-text block">${i.name}</span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-app-text block">${i.name}</span>
+                                    ${payerTag}
+                                </div>
                                 <span class="text-[10px] text-app-subtext">${i.category}</span>
                             </div>
                             <div class="text-right flex items-center gap-2">
                                 <div>
                                     <span class="font-bold text-app-text block">${formatVal(i.planned)}</span>
-                                    <span class="text-[10px] text-palette-berry font-semibold cursor-pointer hover:underline" onclick="editBudgetItemRealized(${i.id})">Realizado: ${formatVal(i.realized || 0)}</span>
+                                    <span class="text-[10px] text-palette-berry font-semibold cursor-pointer hover:underline" onclick="openEditBudgetItemModal(${i.id})">Realizado: ${formatVal(i.realized || 0)}</span>
                                 </div>
                                 <div class="flex flex-col gap-1 ml-1.5">
-                                    <button onclick="editTravelBudgetItem(${i.id})" class="text-palette-sunrise p-1 text-xs"><i class="fa-solid fa-pen"></i></button>
-                                    <button onclick="deleteTravelBudgetItem(${i.id})" class="text-palette-watermelon p-1 text-xs"><i class="fa-solid fa-trash"></i></button>
+                                    <button onclick="openEditBudgetItemModal(${i.id})" class="text-palette-sunrise p-1 text-xs cursor-pointer"><i class="fa-solid fa-pen"></i></button>
+                                    <button onclick="deleteTravelBudgetItem(${i.id})" class="text-palette-watermelon p-1 text-xs cursor-pointer"><i class="fa-solid fa-trash"></i></button>
                                 </div>
                             </div>
                         </div>
@@ -706,13 +972,151 @@
                 htmlBlock += `</div>`;
                 listContainer.innerHTML += htmlBlock;
             }
+
+            renderCategoryChart();
+        }
+
+        /* GRÁFICO DE ROSCA DE DISTRIBUIÇÃO DE CUSTOS POR CATEGORIA */
+        let categoryChartInstance = null;
+
+        function toggleChartPanel() {
+            const panel = document.getElementById('travel-chart-panel');
+            const icon = document.getElementById('chart-panel-icon');
+            panel.classList.toggle('hidden');
+            icon.classList.toggle('fa-chevron-up');
+            icon.classList.toggle('fa-chevron-down');
+            if(!panel.classList.contains('hidden')) renderCategoryChart();
+        }
+
+        async function renderCategoryChart() {
+            const chartCanvas = document.getElementById('travelCategoryChart');
+            if(!chartCanvas) return;
+
+            if(categoryChartInstance) {
+                categoryChartInstance.destroy();
+                categoryChartInstance = null;
+            }
+
+            const t = await db.travels.get(currentTravelId);
+            if(!t) return;
+
+            const items = t.budgetItems || [];
+            const catMap = {};
+
+            items.forEach(i => {
+                const val = i.realized > 0 ? i.realized : i.planned;
+                const cat = i.category || 'Outros';
+                catMap[cat] = (catMap[cat] || 0) + val;
+            });
+
+            const labels = Object.keys(catMap);
+            const data = Object.values(catMap);
+            const total = data.reduce((a, b) => a + b, 0);
+
+            const legendContainer = document.getElementById('travel-chart-legend');
+            legendContainer.innerHTML = '';
+
+            if(labels.length === 0) {
+                legendContainer.innerHTML = '<p class="text-app-subtext italic text-center py-2">Sem custos cadastrados.</p>';
+                return;
+            }
+
+            labels.forEach((cat, idx) => {
+                const val = catMap[cat];
+                const pct = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
+                const colorHex = VIBRANT_PALETTE[idx % VIBRANT_PALETTE.length];
+
+                legendContainer.innerHTML += `
+                    <div class="flex justify-between items-center py-1 border-b border-gray-100 last:border-0">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full inline-block" style="background-color: ${colorHex}"></span>
+                            <span class="font-semibold text-app-text">${cat}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-app-text">${formatCurrency(val)}</span>
+                            <span class="text-palette-sunrise font-extrabold">${pct}%</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const ctx = chartCanvas.getContext('2d');
+            categoryChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{
+                        data,
+                        backgroundColor: VIBRANT_PALETTE.slice(0, labels.length),
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // ================= DIVISÃO E ACERTO =================
+        async function renderAcertoSummary() {
+            if(!currentTravelId) return;
+            const t = await db.travels.get(currentTravelId);
+            const items = t.budgetItems || [];
+            const container = document.getElementById('acerto-summary-container');
+            container.innerHTML = '';
+
+            let paidLarissa = 0;
+            let paidPedro = 0;
+            let totalSpentShared = 0;
+
+            items.forEach(i => {
+                const val = i.realized > 0 ? i.realized : i.planned;
+                if(i.payer === 'Larissa') paidLarissa += val;
+                else if(i.payer === 'Pedro') paidPedro += val;
+                totalSpentShared += val;
+            });
+
+            const half = totalSpentShared / 2;
+            const diffLarissa = paidLarissa - half;
+
+            let balanceHtml = '';
+            if(diffLarissa > 0) {
+                balanceHtml = `<p class="text-xs font-bold text-palette-sunrise">Pedro deve pagar <span class="text-palette-watermelon font-black">${formatCurrency(diffLarissa)}</span> para Larissa.</p>`;
+            } else if(diffLarissa < 0) {
+                balanceHtml = `<p class="text-xs font-bold text-palette-sunrise">Larissa deve pagar <span class="text-palette-watermelon font-black">${formatCurrency(Math.abs(diffLarissa))}</span> para Pedro.</p>`;
+            } else {
+                balanceHtml = `<p class="text-xs font-bold text-palette-berry">Contas totalmente equilibradas! Ninguém deve nada.</p>`;
+            }
+
+            container.innerHTML = `
+                <div class="grid grid-cols-2 gap-2 text-xs mb-3">
+                    <div class="p-3 bg-palette-linen rounded-2xl border border-gray-200/50">
+                        <span class="text-[10px] text-app-subtext font-bold uppercase block">Larissa Pagou</span>
+                        <span class="font-black text-palette-sunrise text-base">${formatCurrency(paidLarissa)}</span>
+                    </div>
+                    <div class="p-3 bg-palette-linen rounded-2xl border border-gray-200/50">
+                        <span class="text-[10px] text-app-subtext font-bold uppercase block">Pedro Pagou</span>
+                        <span class="font-black text-palette-berry text-base">${formatCurrency(paidPedro)}</span>
+                    </div>
+                </div>
+                <div class="p-3 bg-palette-sky/30 border border-palette-sky/60 rounded-2xl text-center">
+                    ${balanceHtml}
+                </div>
+            `;
         }
 
         // ================= ITINERÁRIO =================
         async function addTravelDay() {
             if(!currentTravelId) return;
             const summaryInput = document.getElementById('travel-day-summary');
+            const dateInput = document.getElementById('travel-day-date');
+            
             const summary = summaryInput.value.trim() || "Passeios";
+            const dateVal = dateInput.value;
             
             const t = await db.travels.get(currentTravelId);
             const days = t.days || [];
@@ -720,11 +1124,14 @@
             days.push({
                 dayNum: days.length + 1,
                 summary: summary,
+                date: dateVal,
+                photos: [],
                 stops: []
             });
 
             await db.travels.update(currentTravelId, { days: days });
             summaryInput.value = '';
+            dateInput.value = '';
             renderTravelDays();
             updateBudgetDayOptions(days.length);
         }
@@ -752,6 +1159,67 @@
             }
         }
 
+        /* FOTOS DO DIA: MODAL COM LISTA + E - */
+        async function openDayPhotosModal(dayIdx) {
+            photoTargetDayIndex = dayIdx;
+            const t = await db.travels.get(currentTravelId);
+            const d = t.days[dayIdx];
+
+            document.getElementById('day-photos-modal-title').innerText = `Fotos - Dia ${d.dayNum}`;
+            renderDayPhotosList(d.photos || []);
+            document.getElementById('modal-manage-day-photos').classList.remove('hidden');
+        }
+
+        function closeDayPhotosModal() {
+            document.getElementById('modal-manage-day-photos').classList.add('hidden');
+            renderTravelDays();
+            if(currentDayIndex !== null) {
+                openDayDetail(currentDayIndex);
+            }
+        }
+
+        async function addDayPhoto() {
+            const input = document.getElementById('new-day-photo-url');
+            const url = input.value.trim();
+            if(!url) return;
+
+            const t = await db.travels.get(currentTravelId);
+            if(!t.days[photoTargetDayIndex].photos) t.days[photoTargetDayIndex].photos = [];
+            
+            t.days[photoTargetDayIndex].photos.push(url);
+            await db.travels.update(currentTravelId, { days: t.days });
+
+            input.value = '';
+            renderDayPhotosList(t.days[photoTargetDayIndex].photos);
+        }
+
+        async function removeDayPhoto(photoIdx) {
+            const t = await db.travels.get(currentTravelId);
+            t.days[photoTargetDayIndex].photos.splice(photoIdx, 1);
+            await db.travels.update(currentTravelId, { days: t.days });
+            renderDayPhotosList(t.days[photoTargetDayIndex].photos);
+        }
+
+        function renderDayPhotosList(photos) {
+            const list = document.getElementById('day-photos-list');
+            list.innerHTML = '';
+
+            if(photos.length === 0) {
+                list.innerHTML = '<p class="text-app-subtext text-xs italic text-center py-2">Nenhuma foto adicionada ainda.</p>';
+                return;
+            }
+
+            photos.forEach((url, idx) => {
+                list.innerHTML += `
+                    <div class="flex items-center gap-3 bg-palette-linen p-2 rounded-2xl border border-gray-200/50">
+                        <img src="${url}" class="w-12 h-12 object-cover rounded-xl flex-shrink-0">
+                        <span class="text-xs text-app-subtext truncate flex-1">${url}</span>
+                        <button onclick="removeDayPhoto(${idx})" class="w-8 h-8 rounded-full bg-white text-palette-watermelon font-bold text-base shadow flex items-center justify-center flex-shrink-0 cursor-pointer">-</button>
+                    </div>
+                `;
+            });
+        }
+
         async function renderTravelDays() {
             const t = await db.travels.get(currentTravelId);
             const container = document.getElementById('travel-days-container');
@@ -765,20 +1233,40 @@
 
             days.forEach((d, idx) => {
                 const stopsCount = (d.stops || []).length;
+                const dateDisplay = d.date ? ` • ${d.date.split('-').reverse().join('/')}` : '';
+                const photos = d.photos || [];
+
+                let carouselHtml = '';
+                if(photos.length > 0) {
+                    carouselHtml = `<div class="flex gap-2 overflow-x-auto no-scrollbar py-2 mt-2">`;
+                    photos.forEach(pUrl => {
+                        carouselHtml += `<img src="${pUrl}" class="w-20 h-20 object-cover rounded-2xl flex-shrink-0 shadow-sm border border-gray-100">`;
+                    });
+                    carouselHtml += `</div>`;
+                }
+
                 container.innerHTML += `
-                    <div class="relative bg-white border border-gray-200/60 rounded-3xl p-4 flex items-center gap-3 shadow-sm cursor-pointer hover:border-palette-sunrise transition"
+                    <div class="relative bg-white border border-gray-200/60 rounded-3xl p-4 shadow-sm cursor-pointer hover:border-palette-sunrise transition"
                          onclick="openDayDetail(${idx})">
-                        <div class="flex-1 min-w-0">
-                            <h3 class="text-xs font-black text-palette-sunrise uppercase tracking-wider">Dia ${d.dayNum}</h3>
-                            <p class="text-sm font-bold text-app-text truncate leading-snug mt-0.5">${d.summary}</p>
-                            <p class="text-[10px] text-app-subtext mt-1 flex items-center gap-1">
-                                <i class="fa-solid fa-location-dot text-[9px]"></i> ${stopsCount} atividade(s)
-                            </p>
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-xs font-black text-palette-sunrise uppercase tracking-wider">Dia ${d.dayNum}${dateDisplay}</h3>
+                                <p class="text-sm font-bold text-app-text truncate leading-snug mt-0.5">${d.summary}</p>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <button onclick="event.stopPropagation(); openDayPhotosModal(${idx})" class="text-palette-sunrise hover:opacity-80 p-1.5 text-xs bg-palette-linen rounded-full cursor-pointer" title="Gerenciar Fotos">
+                                    <i class="fa-solid fa-camera"></i>
+                                </button>
+                                <button onclick="event.stopPropagation(); editTravelDay(${idx})" class="text-app-subtext hover:text-app-text p-1.5 text-xs"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="event.stopPropagation(); deleteTravelDay(${idx})" class="text-palette-watermelon p-1.5 text-xs"><i class="fa-solid fa-trash"></i></button>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-1">
-                            <button onclick="event.stopPropagation(); editTravelDay(${idx})" class="text-app-subtext hover:text-app-text p-2 text-xs"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick="event.stopPropagation(); deleteTravelDay(${idx})" class="text-palette-watermelon p-2 text-xs"><i class="fa-solid fa-trash"></i></button>
-                        </div>
+
+                        ${carouselHtml}
+
+                        <p class="text-[10px] text-app-subtext mt-2 flex items-center gap-1">
+                            <i class="fa-solid fa-location-dot text-[9px]"></i> ${stopsCount} atividade(s)
+                        </p>
                     </div>
                 `;
             });
@@ -790,8 +1278,38 @@
             const t = await db.travels.get(currentTravelId);
             const d = t.days[idx];
 
-            document.getElementById('day-detail-number-title').innerText = `Dia ${d.dayNum}`;
+            const dateDisplay = d.date ? ` (${d.date.split('-').reverse().join('/')})` : '';
+            document.getElementById('day-detail-number-title').innerText = `Dia ${d.dayNum}${dateDisplay}`;
             document.getElementById('day-detail-summary-display').innerText = d.summary;
+
+            /* CARROSSEL DE FOTOS NO DETALHE DO DIA */
+            const carouselContainer = document.getElementById('day-detail-photos-carousel-container');
+            carouselContainer.innerHTML = '';
+
+            const photos = d.photos || [];
+            if(photos.length > 0) {
+                let photosHtml = `
+                    <div class="bg-white p-3 rounded-3xl border border-gray-200/60 shadow-sm space-y-2">
+                        <div class="flex justify-between items-center px-1">
+                            <span class="text-xs font-bold text-palette-sunrise uppercase tracking-wider">Galeria de Fotos</span>
+                            <button onclick="openDayPhotosModal(${idx})" class="text-[10px] font-bold text-palette-berry hover:underline cursor-pointer">+ Gerenciar</button>
+                        </div>
+                        <div class="flex gap-2 overflow-x-auto no-scrollbar py-1">
+                `;
+                photos.forEach(pUrl => {
+                    photosHtml += `<img src="${pUrl}" class="w-24 h-24 object-cover rounded-2xl flex-shrink-0 shadow-sm border border-gray-100">`;
+                });
+                photosHtml += `</div></div>`;
+                carouselContainer.innerHTML = photosHtml;
+            } else {
+                carouselContainer.innerHTML = `
+                    <div class="text-center py-1">
+                        <button onclick="openDayPhotosModal(${idx})" class="text-xs font-bold text-palette-sunrise hover:underline cursor-pointer">
+                            <i class="fa-solid fa-camera mr-1"></i> Adicionar Fotos a este dia
+                        </button>
+                    </div>
+                `;
+            }
 
             renderDayTimeline(d.stops || []);
             document.getElementById('travel-details-view').classList.add('hidden');
@@ -804,6 +1322,7 @@
             renderTravelDays();
         }
 
+        /* TIMELINE COM CHECKBOX MINIMALISTA E REVERSÍVEL */
         function renderDayTimeline(stops) {
             const container = document.getElementById('day-timeline-container');
             container.innerHTML = '';
@@ -822,9 +1341,9 @@
                     <div class="relative pl-2 pb-2">
                         <div class="absolute -left-[22px] top-1.5 w-3 h-3 rounded-full bg-palette-sunrise border-2 border-white shadow-sm"></div>
                         
-                        <div class="flex items-start gap-2.5">
+                        <div class="flex items-start gap-2">
                             <div class="pt-0.5">
-                                <input type="checkbox" ${s.done ? 'checked' : ''} onclick="event.stopPropagation(); toggleTimelineStop(${idx}, this.checked)" class="round-cb-sm flex-shrink-0">
+                                <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleTimelineStop(${idx}, this.checked)" class="round-cb-sm flex-shrink-0">
                             </div>
                             <span class="text-xs font-bold text-app-subtext w-10 pt-0.5 flex-shrink-0 ${isDone}">${s.time || '09:00'}</span>
                             
@@ -855,6 +1374,7 @@
             });
         }
 
+        /* CHECKBOX CLICÁVEL E REVERSÍVEL (MARCA/DESMARCA) */
         async function toggleTimelineStop(stopIdx, isChecked) {
             const t = await db.travels.get(currentTravelId);
             t.days[currentDayIndex].stops[stopIdx].done = isChecked;
